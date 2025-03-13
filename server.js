@@ -32,35 +32,63 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type. Only JPEG, PNG, and PDF are allowed."), false);
+    cb(
+      new Error("Invalid file type. Only JPEG, PNG, and PDF are allowed."),
+      false
+    );
   }
 };
 
 const upload = multer({ storage, fileFilter });
 
-// Handle File Upload
+// Handle File Upload (Returns HTML)
 app.post("/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: "Invalid file type or no file uploaded." });
+    return res.status(400).send(`
+      <h1>Upload Failed</h1>
+      <p>Invalid file type or no file uploaded.</p>
+      <a href="/">Go Back</a>
+    `);
   }
-  res.json({ message: "File uploaded successfully!", file: req.file.filename });
+
+  res.send(`
+    <h1>File Uploaded Successfully!</h1>
+    <p>File Name: <strong>${req.file.filename}</strong></p>
+    <a href="/">Upload Another File</a>
+    <br>
+    <a href="/uploads/${req.file.filename}" target="_blank">View Uploaded File</a>
+  `);
 });
 
 // Serve uploaded files
 app.get("/uploads/:filename", (req, res) => {
   const filePath = path.join(uploadDir, req.params.filename);
-  res.sendFile(filePath);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send("<h1>404 - File Not Found</h1>");
+  }
 });
 
 // Serve static files (index.html and other assets)
 app.get("*", (req, res) => {
-  const filePath = path.join(__dirname, "public", req.url === "/" ? "index.html" : req.url);
+  const filePath = path.join(
+    __dirname,
+    "public",
+    req.url === "/" ? "index.html" : req.url
+  );
   fs.readFile(filePath, (err, content) => {
     if (err) {
-      res.writeHead(err.code === "ENOENT" ? 404 : 500, { "Content-Type": "text/html" });
-      res.end(err.code === "ENOENT" ? "<h1>404 - File Not Found</h1>" : "Server Error");
+      res.writeHead(err.code === "ENOENT" ? 404 : 500, {
+        "Content-Type": "text/html",
+      });
+      res.end(
+        err.code === "ENOENT" ? "<h1>404 - File Not Found</h1>" : "Server Error"
+      );
     } else {
-      res.writeHead(200, { "Content-Type": mime.lookup(filePath) || "application/octet-stream" });
+      res.writeHead(200, {
+        "Content-Type": mime.lookup(filePath) || "application/octet-stream",
+      });
       res.end(content);
     }
   });
