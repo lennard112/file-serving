@@ -14,20 +14,20 @@ const server = http.createServer((req, res) => {
     if (err) {
       if (err.code === "ENOENT") {
         res.writeHead(404, { "Content-Type": "text/html" });
-        res.end("<h1>404 - File Not Found <h/1>", "utf8");
+        res.end("<h1>404 - File Not Found</h1>", "utf8");
       } else {
-        res.writeHead(500);
+        res.writeHead(500, { "Content-Type": "text/plain" });
         res.end(`Server Error: ${err.code}`);
       }
     } else {
-      res.writeHead(200, { "Content-Type": mime.lookup(filePath) });
-
-      res.end(content, "utf8");
+      const contentType = mime.lookup(filePath) || "application/octet-stream";
+      res.writeHead(200, { "Content-Type": contentType });
+      res.end(content);
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, "localhost", () =>
-  console.log(`Server running on http://localhost:${PORT}`)
+server.listen(PORT, "0.0.0.0", () =>
+  console.log(`Server running on http://0.0.0.0:${PORT}`)
 );
